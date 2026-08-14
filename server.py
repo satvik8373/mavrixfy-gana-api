@@ -307,8 +307,6 @@ def execute_call(req: CallRequest):
 
 # Convenience API Endpoints for Quick Home/Search/Album/Playlist views
 @app.get("/api/home")
-@app.get("/home")
-@app.get("/api/youtube-music/home")
 def get_home_feed(limit: int = 4):
     client = get_client()
     try:
@@ -319,46 +317,31 @@ def get_home_feed(limit: int = 4):
 
 
 @app.get("/api/search")
-@app.get("/search")
-@app.get("/api/youtube-music/search")
 def search_music(
-    query: Optional[str] = Query(None),
-    q: Optional[str] = Query(None),
+    query: str = Query(..., min_length=1),
     filter: Optional[str] = Query(None),
     limit: int = 20,
 ):
-    search_term = (query or q or "").strip()
-    if not search_term:
-        raise HTTPException(status_code=400, detail="Query parameter 'q' or 'query' is required")
     client = get_client()
     try:
-        results = client.search(query=search_term, filter=filter if filter and filter != "all" else None, limit=limit)
-        return {"success": True, "query": search_term, "filter": filter, "data": results}
+        results = client.search(query=query, filter=filter if filter and filter != "all" else None, limit=limit)
+        return {"success": True, "query": query, "filter": filter, "data": results}
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
 @app.get("/api/suggestions")
-@app.get("/suggestions")
-@app.get("/search/suggestions")
-@app.get("/api/youtube-music/search/suggestions")
-@app.get("/api/youtube-music/suggestions")
-def get_suggestions(query: Optional[str] = Query(None), q: Optional[str] = Query(None)):
-    search_term = (query or q or "").strip()
-    if not search_term:
-        return {"success": True, "suggestions": []}
+def get_suggestions(query: str = Query(..., min_length=1)):
     client = get_client()
     try:
-        suggestions = client.get_search_suggestions(query=search_term)
+        suggestions = client.get_search_suggestions(query=query)
         return {"success": True, "suggestions": suggestions}
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
 @app.get("/api/charts")
-@app.get("/charts")
-@app.get("/api/youtube-music/charts")
-def get_charts_data(country: str = "IN"):
+def get_charts_data(country: str = "US"):
     client = get_client()
     try:
         charts = client.get_charts(country=country)
@@ -368,8 +351,6 @@ def get_charts_data(country: str = "IN"):
 
 
 @app.get("/api/explore")
-@app.get("/explore")
-@app.get("/api/youtube-music/explore")
 def get_explore_data():
     client = get_client()
     try:
@@ -380,8 +361,6 @@ def get_explore_data():
 
 
 @app.get("/api/mood_categories")
-@app.get("/moods")
-@app.get("/api/youtube-music/moods")
 def get_moods():
     client = get_client()
     try:
@@ -395,25 +374,20 @@ def get_moods():
 stream_cache: Dict[str, Dict[str, Any]] = {}
 
 @app.get("/api/stream/{video_id}")
-@app.get("/stream/{video_id}")
-@app.get("/api/youtube-music/stream/{video_id}")
 def get_audio_stream(video_id: str):
-    clean_id = video_id.replace("youtube_", "")
     import yt_dlp
     
     # Check cache (valid for 3 hours)
     now = time.time()
-    if clean_id in stream_cache:
-        cached = stream_cache[clean_id]
+    if video_id in stream_cache:
+        cached = stream_cache[video_id]
         if now - cached["fetched_at"] < 3 * 3600:
             return {
                 "success": True,
                 "cached": True,
-                "video_id": clean_id,
-                "url": cached["url"],
+                "video_id": video_id,
                 "stream_url": cached["url"],
                 "bitrate": cached.get("bitrate"),
-                "bitrateKbps": cached.get("bitrate"),
                 "format": cached.get("format"),
                 "duration": cached.get("duration"),
             }
@@ -427,7 +401,7 @@ def get_audio_stream(video_id: str):
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"https://www.youtube.com/watch?v={clean_id}", download=False)
+            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
             stream_url = info.get("url")
             if not stream_url:
                 raise HTTPException(status_code=404, detail="No direct audio stream found for video")
@@ -440,16 +414,14 @@ def get_audio_stream(video_id: str):
                 "title": info.get("title"),
                 "fetched_at": now,
             }
-            stream_cache[clean_id] = data
+            stream_cache[video_id] = data
 
             return {
                 "success": True,
                 "cached": False,
-                "video_id": clean_id,
-                "url": stream_url,
+                "video_id": video_id,
                 "stream_url": stream_url,
                 "bitrate": data["bitrate"],
-                "bitrateKbps": data["bitrate"],
                 "format": data["format"],
                 "duration": data["duration"],
                 "title": data["title"],
@@ -462,8 +434,6 @@ def get_audio_stream(video_id: str):
 
 
 @app.get("/api/album/{browse_id}")
-@app.get("/album/{browse_id}")
-@app.get("/api/youtube-music/album/{browse_id}")
 def get_album_details(browse_id: str):
     client = get_client()
     try:
@@ -474,8 +444,6 @@ def get_album_details(browse_id: str):
 
 
 @app.get("/api/playlist/{playlist_id}")
-@app.get("/playlist/{playlist_id}")
-@app.get("/api/youtube-music/playlist/{playlist_id}")
 def get_playlist_details(playlist_id: str, limit: int = 50):
     client = get_client()
     try:
@@ -483,32 +451,6 @@ def get_playlist_details(playlist_id: str, limit: int = 50):
         return {"success": True, "data": playlist}
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-
-@app.get("/api/artist/{artist_id}")
-@app.get("/artist/{artist_id}")
-@app.get("/api/youtube-music/artist/{artist_id}")
-def get_artist_details(artist_id: str):
-    client = get_client()
-    try:
-        artist = client.get_artist(channelId=artist_id)
-        return {"success": True, "data": artist}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-
-@app.get("/api/watch/{video_id}")
-@app.get("/watch/{video_id}")
-@app.get("/api/youtube-music/watch/{video_id}")
-def get_watch_details(video_id: str, limit: int = 10, radio: bool = False):
-    client = get_client()
-    clean_id = video_id.replace("youtube_", "")
-    try:
-        watch = client.get_watch_playlist(videoId=clean_id, limit=limit, radio=radio)
-        return {"success": True, "data": watch}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
 
 
 # Mount static files
