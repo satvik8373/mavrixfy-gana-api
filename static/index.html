@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ytmusicapi • Testing Hub & API Explorer</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <i data-lucide="play" class="logo-icon"></i>
+        </div>
+        <div class="brand-text">
+          <h2>ytmusicapi</h2>
+          <span class="badge-sub">Testing Hub</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="home">
+          <i data-lucide="compass"></i>
+          <span>Home & Explore</span>
+        </button>
+        <button class="nav-item" data-tab="search">
+          <i data-lucide="search"></i>
+          <span>Search</span>
+        </button>
+        <button class="nav-item" data-tab="albums">
+          <i data-lucide="disc"></i>
+          <span>Albums</span>
+        </button>
+        <button class="nav-item" data-tab="playlists">
+          <i data-lucide="list-music"></i>
+          <span>Playlists</span>
+        </button>
+        <button class="nav-item" data-tab="api-explorer">
+          <i data-lucide="terminal"></i>
+          <span>All API Calls</span>
+          <span class="counter-badge" id="methods-count-badge">50+</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="auth-status-card" id="auth-status-card" onclick="openAuthModal()">
+          <div class="status-indicator-dot" id="status-indicator"></div>
+          <div class="auth-info">
+            <span class="auth-title" id="auth-title">Guest (Unauthorized)</span>
+            <span class="auth-sub" id="auth-sub">Click to configure</span>
+          </div>
+          <i data-lucide="settings" class="settings-icon"></i>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Header -->
+      <header class="topbar">
+        <div class="search-quick-bar">
+          <i data-lucide="search" class="search-bar-icon"></i>
+          <input type="text" id="global-search-input" placeholder="Quick search YouTube Music (e.g. Taylor Swift, Starboy, Top 50)..." autocomplete="off">
+          <button class="btn-clear hidden" id="btn-clear-global-search">
+            <i data-lucide="x"></i>
+          </button>
+          <div class="suggestions-box hidden" id="global-suggestions-box"></div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="badge-pill" id="current-lang-badge">
+            <i data-lucide="globe"></i> <span id="current-lang-text">en</span>
+          </div>
+          <button class="btn-icon" title="Configure Auth & Settings" onclick="openAuthModal()">
+            <i data-lucide="sliders"></i>
+          </button>
+          <a href="https://ytmusicapi.readthedocs.io" target="_blank" class="btn-secondary" title="Read Docs">
+            <i data-lucide="external-link"></i> Docs
+          </a>
+        </div>
+      </header>
+
+      <div class="tab-contents">
+        <!-- 1. HOME TAB -->
+        <section id="tab-home" class="tab-panel active">
+          <div class="hero-banner">
+            <div class="hero-content">
+              <span class="hero-tag"><i data-lucide="sparkles"></i> ytmusicapi Testing Dashboard</span>
+              <h1>Explore YouTube Music APIs</h1>
+              <p>Test live searching, browse albums, playlists, charts, moods, and inspect all 50+ <code>YTMusic</code> API methods interactively in real-time.</p>
+              <div class="hero-actions">
+                <button class="btn-primary" onclick="switchTab('search')">
+                  <i data-lucide="search"></i> Test Searching
+                </button>
+                <button class="btn-glass" onclick="switchTab('api-explorer')">
+                  <i data-lucide="code-2"></i> Open API Sandbox
+                </button>
+              </div>
+            </div>
+            <div class="hero-glow"></div>
+          </div>
+
+          <!-- Charts & Quick Picks Section -->
+          <div class="section-container">
+            <div class="section-header">
+              <div class="title-wrap">
+                <i data-lucide="trending-up" class="sec-icon"></i>
+                <h2>Trending Charts & Top Hits</h2>
+              </div>
+              <div class="country-picker">
+                <label for="charts-country-select">Country:</label>
+                <select id="charts-country-select" onchange="loadCharts()">
+                  <option value="US">United States (US)</option>
+                  <option value="GB">United Kingdom (GB)</option>
+                  <option value="IN">India (IN)</option>
+                  <option value="JP">Japan (JP)</option>
+                  <option value="DE">Germany (DE)</option>
+                  <option value="BR">Brazil (BR)</option>
+                  <option value="FR">France (FR)</option>
+                  <option value="KR">South Korea (KR)</option>
+                  <option value="AU">Australia (AU)</option>
+                  <option value="CA">Canada (CA)</option>
+                  <option value="ZZ">Global (ZZ)</option>
+                </select>
+                <button class="btn-refresh" onclick="loadCharts()" title="Refresh Charts">
+                  <i data-lucide="rotate-cw"></i>
+                </button>
+              </div>
+            </div>
+            <div id="charts-loading" class="loading-spinner"><div class="spinner"></div><span>Loading Charts...</span></div>
+            <div id="charts-grid" class="cards-grid"></div>
+          </div>
+
+          <!-- Explore / Home Feed Shelves -->
+          <div class="section-container">
+            <div class="section-header">
+              <div class="title-wrap">
+                <i data-lucide="layout-grid" class="sec-icon"></i>
+                <h2>Home Feed Shelves (<code>get_home</code>)</h2>
+              </div>
+              <button class="btn-refresh" onclick="loadHomeFeed()" title="Refresh Home Feed">
+                <i data-lucide="rotate-cw"></i>
+              </button>
+            </div>
+            <div id="home-loading" class="loading-spinner"><div class="spinner"></div><span>Loading Home Feed...</span></div>
+            <div id="home-shelves-container"></div>
+          </div>
+        </section>
+
+        <!-- 2. SEARCH TAB -->
+        <section id="tab-search" class="tab-panel">
+          <div class="page-header">
+            <div>
+              <h1>Search YouTube Music</h1>
+              <p class="subtitle">Test <code>search()</code> with multiple filter types and auto-suggestions</p>
+            </div>
+          </div>
+
+          <div class="search-control-card">
+            <div class="search-input-group">
+              <i data-lucide="search" class="search-icon-lg"></i>
+              <input type="text" id="search-page-input" placeholder="Search songs, artists, albums, playlists, podcasts..." value="Blinding Lights">
+              <button class="btn-primary" id="btn-run-search" onclick="runSearch()">
+                <i data-lucide="search"></i> Search
+              </button>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="filter-pills" id="search-filter-pills">
+              <button class="filter-pill active" data-filter="all">All</button>
+              <button class="filter-pill" data-filter="songs">Songs</button>
+              <button class="filter-pill" data-filter="videos">Videos</button>
+              <button class="filter-pill" data-filter="albums">Albums</button>
+              <button class="filter-pill" data-filter="artists">Artists</button>
+              <button class="filter-pill" data-filter="playlists">Playlists</button>
+              <button class="filter-pill" data-filter="community_playlists">Community Playlists</button>
+              <button class="filter-pill" data-filter="featured_playlists">Featured Playlists</button>
+              <button class="filter-pill" data-filter="podcasts">Podcasts</button>
+              <button class="filter-pill" data-filter="episodes">Episodes</button>
+            </div>
+          </div>
+
+          <div class="search-meta-bar">
+            <span id="search-results-info">Ready to search.</span>
+            <div class="search-meta-actions">
+              <button class="btn-sm btn-ghost" id="btn-inspect-search-raw" onclick="toggleSearchRawJson()" style="display:none;">
+                <i data-lucide="code"></i> View Raw JSON
+              </button>
+            </div>
+          </div>
+
+          <div id="search-raw-json-container" class="raw-json-panel hidden">
+            <div class="json-header">
+              <span>Raw API Response (<code>search</code>)</span>
+              <button class="btn-sm btn-secondary" onclick="copyJson('search-raw-json')"><i data-lucide="copy"></i> Copy</button>
+            </div>
+            <pre id="search-raw-json" class="json-code"></pre>
+          </div>
+
+          <div id="search-loading" class="loading-spinner hidden"><div class="spinner"></div><span>Searching YouTube Music...</span></div>
+          <div id="search-results-grid" class="cards-grid"></div>
+        </section>
+
+        <!-- 3. ALBUMS TAB -->
+        <section id="tab-albums" class="tab-panel">
+          <div class="page-header">
+            <div>
+              <h1>Albums Explorer</h1>
+              <p class="subtitle">Test <code>get_album()</code> & <code>get_album_browse_id()</code></p>
+            </div>
+          </div>
+
+          <div class="lookup-card">
+            <div class="lookup-input-group">
+              <div class="input-with-icon">
+                <i data-lucide="disc"></i>
+                <input type="text" id="album-id-input" placeholder="Enter Album Browse ID (e.g. MPREb_4pL8gz094W8, MPREb_G4k1f8U6Z...)" value="MPREb_4pL8gz094W8">
+              </div>
+              <button class="btn-primary" onclick="loadAlbumFromInput()">
+                <i data-lucide="arrow-right"></i> Load Album
+              </button>
+            </div>
+            <div class="preset-links">
+              <span>Quick Presets:</span>
+              <button class="preset-btn" onclick="quickLoadAlbum('MPREb_4pL8gz094W8')">After Hours (The Weeknd)</button>
+              <button class="preset-btn" onclick="quickLoadAlbum('MPREb_bE7b39Y45o6')">Future Nostalgia (Dua Lipa)</button>
+              <button class="preset-btn" onclick="quickLoadAlbum('MPREb_k1rZk5QYp6H')">Midnights (Taylor Swift)</button>
+              <button class="preset-btn" onclick="quickLoadAlbum('MPREb_09H3MhB2Pq8')">Random Access Memories</button>
+            </div>
+          </div>
+
+          <div id="album-loading" class="loading-spinner hidden"><div class="spinner"></div><span>Fetching Album Metadata...</span></div>
+          <div id="album-details-container"></div>
+        </section>
+
+        <!-- 4. PLAYLISTS TAB -->
+        <section id="tab-playlists" class="tab-panel">
+          <div class="page-header">
+            <div>
+              <h1>Playlists Explorer</h1>
+              <p class="subtitle">Test <code>get_playlist()</code>, explore mood & featured playlists</p>
+            </div>
+          </div>
+
+          <div class="lookup-card">
+            <div class="lookup-input-group">
+              <div class="input-with-icon">
+                <i data-lucide="list-music"></i>
+                <input type="text" id="playlist-id-input" placeholder="Enter Playlist ID (e.g. RDCLAK5uy_kpx98w4q_b4e9i8a1y8k4f7, PL...)" value="RDCLAK5uy_kpx98w4q_b4e9i8a1y8k4f7">
+              </div>
+              <button class="btn-primary" onclick="loadPlaylistFromInput()">
+                <i data-lucide="arrow-right"></i> Load Playlist
+              </button>
+            </div>
+            <div class="preset-links">
+              <span>Featured Presets:</span>
+              <button class="preset-btn" onclick="quickLoadPlaylist('RDCLAK5uy_kpx98w4q_b4e9i8a1y8k4f7')">Today's Biggest Hits</button>
+              <button class="preset-btn" onclick="quickLoadPlaylist('RDCLAK5uy_l4nN7cE_jN3LqU9sK1F2k8mX1y')">Chill Vibes</button>
+              <button class="preset-btn" onclick="quickLoadPlaylist('RDCLAK5uy_n3wK0j070t0y55V7E6c9_u7s')">Synthwave Beats</button>
+              <button class="preset-btn" onclick="quickLoadPlaylist('RDCLAK5uy_m4J_c0e0r8c2Q2e8p6L9y1A2b3c4d5')">Top 50 Pop</button>
+            </div>
+          </div>
+
+          <div id="playlist-loading" class="loading-spinner hidden"><div class="spinner"></div><span>Fetching Playlist Details...</span></div>
+          <div id="playlist-details-container"></div>
+        </section>
+
+        <!-- 5. ALL API CALLS EXPLORER (SANDBOX) -->
+        <section id="tab-api-explorer" class="tab-panel">
+          <div class="page-header">
+            <div>
+              <h1>All Available API Calls</h1>
+              <p class="subtitle">Interactive sandbox for every method across all 9 <code>ytmusicapi</code> mixins</p>
+            </div>
+            <div class="stats-badge">
+              <span id="api-methods-total">50+</span> Methods Available
+            </div>
+          </div>
+
+          <div class="api-explorer-layout">
+            <!-- Left Methods Navigator -->
+            <div class="methods-sidebar">
+              <div class="methods-search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="method-filter-input" placeholder="Filter methods (e.g. search, song, library)..." oninput="filterMethodsList()">
+              </div>
+
+              <!-- Category filter pills -->
+              <div class="category-pills" id="category-pills-container">
+                <button class="cat-pill active" data-cat="all" onclick="filterByCategory('all')">All</button>
+              </div>
+
+              <!-- Method Items List -->
+              <div class="methods-list" id="methods-list-container">
+                <div class="loading-spinner"><div class="spinner"></div></div>
+              </div>
+            </div>
+
+            <!-- Right Method Runner & Inspector -->
+            <div class="method-runner-panel">
+              <div id="method-runner-empty" class="empty-state">
+                <i data-lucide="terminal" class="empty-icon"></i>
+                <h3>Select an API Method</h3>
+                <p>Choose any method from the list on the left to configure parameters, load presets, and execute calls.</p>
+              </div>
+
+              <div id="method-runner-card" class="runner-card hidden">
+                <!-- Method Header -->
+                <div class="runner-header">
+                  <div class="runner-title-group">
+                    <span class="category-badge" id="runner-method-category">Browsing</span>
+                    <h2 id="runner-method-name">get_album</h2>
+                    <span class="auth-badge" id="runner-auth-badge">🟢 Public</span>
+                  </div>
+                  <div class="runner-actions">
+                    <button class="btn-sm btn-secondary" onclick="loadRunnerPreset()">
+                      <i data-lucide="sparkles"></i> Load Preset
+                    </button>
+                  </div>
+                </div>
+
+                <p class="runner-doc" id="runner-method-doc"></p>
+
+                <!-- Parameter Form -->
+                <form id="runner-form" onsubmit="executeMethodCall(event)">
+                  <div class="form-section-title">
+                    <i data-lucide="sliders"></i> Parameters
+                  </div>
+                  <div class="params-fields-grid" id="runner-params-container">
+                    <!-- Dynamic parameters generated via JS -->
+                  </div>
+
+                  <div class="form-submit-row">
+                    <button type="submit" class="btn-primary btn-lg" id="btn-execute-api">
+                      <i data-lucide="play"></i> Execute API Call
+                    </button>
+                    <button type="button" class="btn-ghost" onclick="resetRunnerForm()">
+                      <i data-lucide="rotate-ccw"></i> Reset
+                    </button>
+                  </div>
+                </form>
+
+                <!-- Results Output Card -->
+                <div class="api-output-section" id="api-output-section">
+                  <div class="output-header">
+                    <div class="output-meta">
+                      <span class="status-tag" id="output-status-tag">Status: Ready</span>
+                      <span class="time-tag hidden" id="output-time-tag"><i data-lucide="clock"></i> 0ms</span>
+                    </div>
+                    <div class="output-actions">
+                      <button class="btn-sm btn-secondary" onclick="copyJson('runner-output-json')">
+                        <i data-lucide="copy"></i> Copy JSON
+                      </button>
+                    </div>
+                  </div>
+                  <div id="runner-output-loader" class="loading-spinner hidden">
+                    <div class="spinner"></div><span>Executing API request...</span>
+                  </div>
+                  <pre id="runner-output-json" class="json-code">// Response will appear here after execution</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Bottom Audio Player Bar (Direct Stream & YouTube Player) -->
+    <footer class="player-bar" id="player-bar">
+      <!-- Hidden Native Audio Element -->
+      <audio id="direct-audio-player" preload="metadata"></audio>
+
+      <!-- Track Info -->
+      <div class="player-track-info">
+        <img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&h=100&fit=crop" id="player-thumb" alt="Track Art" class="track-thumb">
+        <div class="track-details">
+          <div class="track-title" id="player-title">Select a track to play</div>
+          <div class="track-artist" id="player-artist">Ready for Direct Playback</div>
+        </div>
+      </div>
+
+      <!-- Main Center Controls & Scrubber -->
+      <div class="player-center-controls">
+        <div class="playback-buttons">
+          <button class="btn-player-action" onclick="togglePlayerPlayPause()" id="btn-player-play" title="Play / Pause">
+            <i data-lucide="play" id="player-play-icon"></i>
+          </button>
+        </div>
+
+        <div class="player-timeline">
+          <span class="time-label" id="player-time-current">0:00</span>
+          <div class="progress-bar-wrap">
+            <input type="range" id="player-progress" min="0" max="100" value="0" step="0.1" oninput="onSeekChange(event)" onchange="onSeekCommit(event)">
+          </div>
+          <span class="time-label" id="player-time-total">0:00</span>
+        </div>
+      </div>
+
+      <!-- Right Meta & Controls -->
+      <div class="player-right-controls">
+        <!-- Direct Stream Quality Badge -->
+        <div class="stream-badge-pill" id="stream-quality-badge" title="Direct Stream Audio (yt-dlp)">
+          <i data-lucide="zap"></i> <span id="stream-quality-text">Direct Stream</span>
+        </div>
+
+        <!-- Volume Control -->
+        <div class="volume-control-wrap">
+          <button class="btn-icon-sm" onclick="toggleMute()" id="btn-player-mute" title="Mute / Unmute">
+            <i data-lucide="volume-2" id="volume-icon"></i>
+          </button>
+          <input type="range" id="player-volume" min="0" max="1" step="0.05" value="1" oninput="onVolumeChange(event)">
+        </div>
+
+        <!-- Copy Stream URL & Inspect -->
+        <button class="btn-sm btn-secondary" onclick="copyDirectStreamUrl()" id="btn-copy-stream" title="Copy direct audio stream URL for production / VLC testing">
+          <i data-lucide="link"></i> Copy Stream
+        </button>
+
+        <button class="btn-sm btn-ghost" onclick="inspectCurrentPlaying()" title="Inspect metadata in API Explorer">
+          <i data-lucide="search"></i> Inspect
+        </button>
+
+        <!-- Hidden Embedded YouTube fallback iframe -->
+        <div class="player-embed-container hidden" id="yt-embed-wrap">
+          <iframe id="yt-embed-iframe" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Auth & Settings Modal -->
+  <div class="modal-overlay hidden" id="auth-modal" onclick="closeAuthModalOnOverlay(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="shield-check"></i>
+          <h3>ytmusicapi Configuration & Auth</h3>
+        </div>
+        <button class="btn-icon" onclick="closeAuthModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Most search, browsing, albums, playlists, and charts endpoints work <strong>out of the box (unauthorized)</strong>. 
+          To test private personal library endpoints (e.g. <code>get_library_songs</code>, <code>create_playlist</code>, <code>rate_song</code>), supply your request headers or oauth JSON below.
+        </p>
+
+        <div class="form-group">
+          <label>Language (hl):</label>
+          <input type="text" id="auth-language-input" value="en" placeholder="e.g. en, es, de, fr, ja">
+        </div>
+
+        <div class="form-group">
+          <label>Location (gl):</label>
+          <input type="text" id="auth-location-input" value="" placeholder="Optional country code e.g. US, GB, IN">
+        </div>
+
+        <div class="form-group">
+          <label>Auth Credentials (Optional):</label>
+          <textarea id="auth-raw-input" rows="5" placeholder="Paste headers.json contents, raw cookie string, or oauth.json dict. Leave empty for unauthorized mode."></textarea>
+        </div>
+
+        <div class="auth-mode-hint">
+          <i data-lucide="info"></i>
+          <span>To reset to default unauthorized guest mode, clear the credentials box and click Save.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="resetGuestAuth()">Reset to Guest</button>
+        <button class="btn-primary" onclick="saveAuthSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
