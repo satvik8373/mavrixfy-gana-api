@@ -468,6 +468,7 @@ def serve_index():
 
 
 if __name__ == "__main__":
+    host = os.environ.get("HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", 8080))
-    print(f"Starting ytmusicapi testing server at http://127.0.0.1:{port} ...")
-    uvicorn.run("server:app", host="127.0.0.1", port=port, reload=False)
+    print(f"Starting ytmusicapi testing server at http://{host}:{port} ...")
+    uvicorn.run("server:app", host=host, port=port, reload=False)
